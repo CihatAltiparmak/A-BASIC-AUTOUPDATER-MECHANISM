@@ -4,26 +4,29 @@ from zipfile import ZipFile
 import os
 import shutil
 
-import app
+APP_NAME = "A-BASIC-AUTOUPDATER-MECHANISM"
+VERSION_LINK = "https://raw.githubusercontent.com/CihatAltiparmak/" + APP_NAME + "/main/version.json"
+APP_PATH = os.path.realpath(".")
+
 
 class Starter:
     def __init__(self):
-        self.version_link = "https://raw.githubusercontent.com/CihatAltiparmak/update_test_repository/main/version.json" 
         self.latest_info = self.get_latest_info()
         self.current_info = self.get_current_info()
 
         if (self.is_update()):
-            print("Application is already updated.")
-            app.start_application()
+            print("App has got the latest version.")
         else:
             print("[Started Updating Process]")
             self.update()
             print("[Finished Updating Process]")
             self.save_changes()
-
+        
+        import app        
+        app.start_application()
 
     def get_latest_info(self):
-        url = urlopen(self.version_link)
+        url = urlopen(VERSION_LINK)
         latest_info = json.loads(url.read().decode())
         return latest_info
 
@@ -52,16 +55,20 @@ class Starter:
 
     def fetch_data(self, zip_file_path):
         os.mkdir(".cache")
-        link = "https://github.com/CihatAltiparmak/update_test_repository/archive/refs/heads/main.zip" # self.latest_info["link"]
+        link = self.latest_info["link"]
         updated_app_data = urlopen(link).read()
         with open(zip_file_path, "wb") as f:
             f.write(updated_app_data)
 
     def reconfigure_dirs(self, zip_file_path):
         with ZipFile(zip_file_path, 'r') as zip_file:
-            for _dir in zip_file.namelist()[1::]:
-                if (_dir != 'update-test-repository-main/main.py'):
-                    zip_file.extract(_dir, "..")
+            zip_file.extractall(".cache")
+            CACHE_DIR = os.path.join(APP_PATH, ".cache" , APP_NAME + "-main")
+            for _dir in os.listdir(CACHE_DIR):
+                if _dir != "main.py":
+                    old_path = os.path.join(CACHE_DIR, _dir)
+                    new_path = os.path.join(APP_PATH, _dir)
+                    os.rename(old_path, new_path)
 
     def is_update(self):
         return self.current_info["version"] == self.latest_info["version"] 
@@ -71,9 +78,7 @@ class Starter:
             self.current_info = self.latest_info
 
         with open("version.json", "w") as f:
-            f.write(json.dumps(self.current_info))
+            f.write(json.dumps(self.current_info, indent = 4))
 
 if __name__ == "__main__":
-    Starter()
-
-       
+    Starter()       
