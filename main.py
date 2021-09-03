@@ -4,9 +4,13 @@ from zipfile import ZipFile
 import os
 import shutil
 
+APP_AUTHOR = "CihatAltiparmak"
 APP_NAME = "A-BASIC-AUTOUPDATER-MECHANISM"
-VERSION_LINK = "https://raw.githubusercontent.com/CihatAltiparmak/" + APP_NAME + "/main/version.json"
-APP_PATH = os.path.realpath(".")
+APP_BRANCH = "main"
+
+
+VERSION_LINK = "https://raw.githubusercontent.com/" + APP_AUTHOR + "/" + APP_NAME + "/" + APP_BRANCH+ "/version.json"
+APP_DIR = os.path.realpath(".")
 
 
 class Starter:
@@ -31,9 +35,14 @@ class Starter:
         return latest_info
 
     def get_current_info(self):
-        with open("version.json", "r") as f:
-            current_info = json.loads(f.read())
-        return current_info
+        try:
+            with open("version.json", "r") as f:
+                current_info = json.loads(f.read())
+            return current_info
+        except FileNotFoundError:
+            # if version.json was deleted during updating, 
+            # It means that some problems such as shutdown suddenly of computer occured during updating 
+            return {"version" : "", "link" : ""}
 
     def update(self): 
         self.__update_files(".cache/updated_app_data.zip")
@@ -63,11 +72,23 @@ class Starter:
     def reconfigure_dirs(self, zip_file_path):
         with ZipFile(zip_file_path, 'r') as zip_file:
             zip_file.extractall(".cache")
-            CACHE_DIR = os.path.join(APP_PATH, ".cache" , APP_NAME + "-main")
+            """
+            default branch is main, in downloaded zip, file tree is like this:
+            For Example:
+            A-BASIC-AUTOUPDATER-MECHANISM-main
+            ├── app_gui.py
+            ├── app_gui.ui
+            ├── app.py
+            ├── main.py
+            ├── README.md
+            └── version.json
+            so cache dir  should be .cache/($APP_NAME)-($APP_BRANCH)
+            """
+            CACHE_DIR = os.path.join(APP_DIR, ".cache" , APP_NAME + "-" + APP_BRANCH)
             for _dir in os.listdir(CACHE_DIR):
                 if _dir != "main.py":
                     old_path = os.path.join(CACHE_DIR, _dir)
-                    new_path = os.path.join(APP_PATH, _dir)
+                    new_path = os.path.join(APP_DIR, _dir)
                     os.rename(old_path, new_path)
 
     def is_update(self):
